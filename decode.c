@@ -185,7 +185,22 @@ decode_common(byte *pc, byte *orig_pc, instr_t *instr)
 	LOG("Starting decode_common\n");
 
 	next_pc = read_instruction(pc, orig_pc, &instr_info, &di, FALSE );
+	instr_set_opcode(instr, instr_info.type);
 
+	if (next_pc == NULL) {
+		LOG("decode: invalid instr\n");
+		return NULL;
+	}
+
+	// set instruction apsr
+	instr->apsr = instr_info.APSR;
+	instr_set_apsr_valid(instr, TRUE);
+
+	instr_set_operands_valid(instr, TRUE);
+
+	di.len = (int) (next_pc - pc);
+
+	//TODO: decode operand
 	return next_pc;
 }
 
