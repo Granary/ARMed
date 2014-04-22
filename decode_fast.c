@@ -1,10 +1,3 @@
-/*
- * decode_fast.c
- *
- *  Created on: 2014-03-30
- *      Author: akshayk
- */
-
 #include "global.h"
 #include "instr.h"
 

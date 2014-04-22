@@ -1,13 +1,5 @@
-/*
- * decode_table.c
- *
- *  Created on: 2014-03-30
- *      Author: akshayk
- */
-
-
 #include "global.h"
-#include "instr.h"
+#include "instruction.h"
 #include "decode.h"
 
 const InstructionCatergory Catergories[] = {

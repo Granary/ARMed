@@ -1,10 +1,3 @@
-/*
- * global.h
- *
- *  Created on: 2014-03-30
- *      Author: akshayk
- */
-
 #ifndef GLOBAL_H_
 #define GLOBAL_H_
 
@@ -14,23 +7,17 @@
 
 #define CLIENT_ASSERT(...)
 #define ASSERT(...)
+#define LOG 	printf
 
-#ifndef true
-#   define true 1
-#endif
-
-#ifndef false
-#   define false 0
-#endif
+#define TRUE 	1
+#define FALSE	0
 
 typedef int bool;
 
 typedef unsigned int uint;
-
 typedef unsigned short ushort;
 
 typedef unsigned char byte;
-
 typedef signed char sbyte;
 
 typedef byte * app_pc;
@@ -38,11 +25,8 @@ typedef byte * app_pc;
 typedef void (*generic_func_t) ();
 
 typedef unsigned long long int uint64;
-
 typedef uint64 reg_t;
-
 typedef long long int int64;
-
 typedef int ptr_int_t;
 
 
