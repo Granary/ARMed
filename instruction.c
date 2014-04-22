@@ -33,3 +33,10 @@ instr_set_operands_valid(instr_t *instr, bool valid)
 {
 
 }
+
+void
+instr_set_raw_bits(instr_t *instr, byte *addr, uint length)
+{
+    instr->bytes = addr;
+    instr->length = length;
+}

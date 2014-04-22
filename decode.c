@@ -3,6 +3,30 @@
 #include "instruction.h"
 #include "decode.h"
 
+static bool
+decode_operand(decode_info_t *di, byte optype, opnd_size_t opsize, opnd_t *opnd)
+{
+	switch (optype) {
+	case TYPE_NONE:
+		opnd->kind = NULL_kind;
+		return TRUE;
+	case Reg:
+		opnd->kind = REG_kind;
+		return TRUE;
+	}
+}
+
+int
+decodeDataProcessing(unsigned int instruction)
+{
+	int i = 0;
+	for(i = 0; i < DP_NUMBER; i++){
+		if((instruction & DataProcCats[i].maskedBits) == DataProcCats[i].concernedBits)
+			return DataProcCats[i].catergoryNumber;
+	}
+	return DP_UNDEFINED;
+}
+
 int get_instr_type(unsigned int instruction)
 {
 	unsigned int i = 0;
@@ -12,6 +36,147 @@ int get_instr_type(unsigned int instruction)
 			return Catergories[i].catergoryNumber;
 	}
 	return CAT_UNDEFINED;
+}
+
+// Read the operands of the instruction
+void
+read_operands(unsigned char * PC, decode_info_t *di, const instr_info_t  *info)
+{
+	unsigned int instruction = *PC;
+	int bitShifter = 0;
+	int temp;
+	int i = 0;
+	instruction = instruction << 8 | *(PC+1);
+	instruction = instruction << 8 | *(PC+2);
+	instruction = instruction << 8 | *(PC+3);
+
+	LOG("Instruction %.8x\n", instruction);
+
+	if (info->dst1_type != TYPE_NONE){
+		di->regDst1 = (instruction) & (info->dst1_mask);
+		temp = info->dst1_mask;
+		for(i = 0 ; i < 32; i++)
+			if((temp & 0x1) == 1)
+				break;
+			else{
+				temp = temp >> 1;
+				bitShifter ++;
+			}
+		di->regDst1 = di->regDst1 >> bitShifter;
+		bitShifter = 0;
+	}
+
+	if (info->dst2_type != TYPE_NONE){
+		di->regDst2 = instruction & info->dst2_mask;
+		temp = info->dst2_mask;
+		for(i = 0 ; i < 32; i++)
+			if((temp & 0x1) == 1)
+				break;
+			else{
+				temp = temp >> 1;
+				bitShifter ++;
+			}
+		di->regDst2 = di->regDst2 >> bitShifter;
+		bitShifter = 0;
+	}
+
+	if (info->src1_type != TYPE_NONE){
+		if(info->src1_type != Reg){
+			di->immed = instruction & info->src1_mask;
+			temp = info->src1_mask;
+			for(i = 0 ; i < 32; i++)
+				if((temp & 0x1) == 1)
+					break;
+				else{
+					temp = temp >> 1;
+					bitShifter ++;
+				}
+			di->immed = di->immed >> bitShifter;
+			bitShifter = 0;
+
+		} else{
+			di->regSrc1 = instruction & info->src1_mask;
+			temp = info->src1_mask;
+			for(i = 0 ; i < 32; i++)
+				if((temp & 0x1) == 1)
+					break;
+				else
+				{
+					temp = temp >> 1;
+					bitShifter ++;
+				}
+
+			di->regSrc1 = di->regSrc1 >> bitShifter;
+			bitShifter = 0;
+		}
+	}
+
+	if (info->src2_type != TYPE_NONE){
+		if(info->src2_type != Reg)
+		{
+			di->immed = instruction & info->src2_mask;
+			temp = info->src2_mask;
+			for(i = 0 ; i < 32; i++)
+				if((temp & 0x1) == 1)
+					break;
+				else
+				{
+					temp = temp >> 1;
+					bitShifter ++;
+				}
+
+			di->immed = di->immed >> bitShifter;
+			bitShifter = 0;
+		}
+		else
+		{
+			di->regSrc2 = instruction & info->src2_mask;
+			//           printf("Src2 Hex %x\n", di->regSrc2);
+			temp = info->src2_mask;
+			for(i = 0 ; i < 32; i++)
+				if((temp & 0x1) == 1)
+					break;
+				else
+				{
+					temp = temp >> 1;
+					bitShifter ++;
+				}
+			di->regSrc2 = di->regSrc2 >> bitShifter;
+		}
+	}
+
+	if (info->src3_type != TYPE_NONE){
+		if(info->src3_type != Reg)
+		{
+			di->immed = instruction & info->src3_mask;
+			temp = info->src3_mask;
+			for(i = 0 ; i < 32; i++)
+				if((temp & 0x1) == 1)
+					break;
+				else
+				{
+					temp = temp >> 1;
+					bitShifter ++;
+				}
+			di->immed = di->immed >> bitShifter;
+			bitShifter = 0;
+		}
+		else
+		{
+			di->regSrc3 = instruction & info->src3_mask;
+			temp = info->src3_mask;
+			for(i = 0 ; i < 32; i++)
+				if((temp & 0x1) == 1)
+					break;
+				else
+				{
+					temp = temp >> 1;
+					bitShifter ++;
+				}
+			di->regSrc3 = di->regSrc3 >> bitShifter;
+		}
+	}
+	return;
 }
 
 static byte *
@@ -168,8 +333,31 @@ read_instruction(byte *pc, byte *orig_pc,
 	/* return values */
 	ret_info = decodedInstruction;
 	return pc+4;
-
 }
+
+
+byte *
+decode_opcode(byte *pc, instr_t *instr)
+{
+	instr_info_t instr_info;
+	decode_info_t di;
+	int sz = 0;
+
+	read_instruction(pc, pc, &instr_info, &di, TRUE /* just opcode */);
+
+	instr_set_opcode(instr, instr_info.type);
+
+	instr->apsr = instr_info.APSR;
+	instr_set_apsr_valid(instr, TRUE);
+
+	/* operands are NOT set */
+	instr_set_operands_valid(instr, FALSE);
+	instr_set_raw_bits(instr, pc, sz);
+	//    /* must set rip_rel_pos after setting raw bits */
+	return pc + 4;
+}
+
+
 
 
 static byte *
@@ -201,7 +389,61 @@ decode_common(byte *pc, byte *orig_pc, instr_t *instr)
 	di.len = (int) (next_pc - pc);
 
 	//TODO: decode operand
+	if (instr_info.dst1_type != TYPE_NONE) {
+		if (!decode_operand(&di, instr_info.dst1_type, di.regDst1,
+				&(dsts[instr_num_dsts++])))
+			goto decode_invalid;
+	}
+
+	if (instr_info.dst2_type != TYPE_NONE) {
+		if (!decode_operand(&di, instr_info.dst2_type, di.regDst2,
+				&(dsts[instr_num_dsts++])))
+			goto decode_invalid;
+	}
+
+	if (instr_info.src1_type != TYPE_NONE) {
+		if(instr_info.src1_type != Immediate){
+			if (!decode_operand(&di, instr_info.src1_type, di.regSrc1,
+					&(srcs[instr_num_srcs++])))
+				goto decode_invalid;
+
+		} else{
+			if (!decode_operand(&di, instr_info.src1_type, di.immed,
+					&(srcs[instr_num_srcs++])))
+				goto decode_invalid;
+		}
+	}
+
+	if (instr_info.src2_type != TYPE_NONE) {
+		if(instr_info.src2_type != Immediate){
+			if (!decode_operand(&di, instr_info.src2_type, di.regSrc2,
+					&(srcs[instr_num_srcs++])))
+				goto decode_invalid;
+
+		} else{
+			if (!decode_operand(&di, instr_info.src2_type, di.immed,
+					&(srcs[instr_num_srcs++])))
+				goto decode_invalid;
+		}
+	}
+
+	if (instr_info.src3_type != TYPE_NONE) {
+		if(instr_info.src3_type != Immediate){
+			if (!decode_operand(&di, instr_info.src3_type, di.regSrc1,
+					&(srcs[instr_num_srcs++])))
+				goto decode_invalid;
+
+		} else{
+			if (!decode_operand(&di, instr_info.src3_type, di.immed,
+					&(srcs[instr_num_srcs++])))
+				goto decode_invalid;
+		}
+	}
+
 	return next_pc;
+
+decode_invalid:
+	return NULL;
 }
 
 
