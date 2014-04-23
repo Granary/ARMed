@@ -1,7 +1,7 @@
 
 CC	:= gcc
 
-LIBSRC	:= decode_table.c decode_fast.c decode.c instruction.c #encode.c instrlist.c
+LIBSRC	:= decode_table.c decode_fast.c decode.c instruction.c encode.c #instrlist.c
 LIBOBJ	:= $(LIBSRC:.c=.o)
 
 LIBARM	:= 	libarm.a
